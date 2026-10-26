@@ -5,7 +5,7 @@ import {
   middlewareMetricsInc,
 } from "./api/middleware.js";
 import { handlerMetrics, handlerReset } from "./api/metrics.js";
-import { allowedNodeEnvironmentFlags } from "node:process";
+import { handlerChirpValidate } from "./api/chirps.js";
 
 async function main() {
   const app = express();
@@ -19,6 +19,7 @@ async function main() {
 
   // Readiness Endpoint
   app.get("/api/healthz", handlerReadiness);
+  app.post("/api/validate_chirp", handlerChirpValidate);
 
   // Admin endpoints
   app.get("/admin/metrics", handlerMetrics);
