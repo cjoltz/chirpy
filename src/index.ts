@@ -6,7 +6,11 @@ import {
   middlewareMetricsInc,
 } from "./api/middleware.js";
 import { handlerMetrics, handlerReset } from "./api/metrics.js";
-import { handlerCreateChirp, handlerGetChirps } from "./api/chirps.js";
+import {
+  handlerCreateChirp,
+  handlerGetChirps,
+  handlerGetChirp,
+} from "./api/chirps.js";
 import { handlerCreateUser } from "./api/users.js";
 import { config } from "./config.js";
 import postgres from "postgres";
@@ -40,6 +44,7 @@ async function main() {
   // Chirp endpoints
   app.post("/api/chirps", handlerCreateChirp);
   app.get("/api/chirps", handlerGetChirps);
+  app.get("/api/chirps/:chirpId", handlerGetChirp);
 
   // Error Handling middleware (MUST BE LAST, RIGHT BEFORE .listen)
   app.use(errorHandler);

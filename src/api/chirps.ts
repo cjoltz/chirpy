@@ -1,8 +1,12 @@
 import type { Request, Response } from "express";
 import { respondWithJSON } from "./json.js";
-import { BadRequestError } from "./errors.js";
+import { BadRequestError, NotFoundError } from "./errors.js";
 import type { NewChirp } from "../db/schema.js";
-import { createChirp, getAllChirps } from "../db/queries/chirps.js";
+import {
+  createChirp,
+  getAllChirps,
+  getChirpById,
+} from "../db/queries/chirps.js";
 
 const profanities = ["kerfuffle", "sharbert", "fornax"];
 const maxChirpLength = 140;
@@ -61,4 +65,16 @@ export async function handlerCreateChirp(req: Request, res: Response) {
 export async function handlerGetChirps(_req: Request, res: Response) {
   const chirps = await getAllChirps();
   respondWithJSON(res, 200, chirps);
+}
+
+export async function handlerGetChirp(req: Request, res: Response) {
+  const id = req.params["chirpId"];
+  if (typeof id !== "string") {
+    throw new NotFoundError("Can't find chirp");
+  }
+  const chirp = await getChirpById(id);
+  if (!chirp) {
+    throw new NotFoundError("Chirp not found");
+  }
+  respondWithJSON(res, 200, chirp);
 }
