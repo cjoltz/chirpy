@@ -12,7 +12,7 @@ async function main() {
   const PORT = 8080;
 
   // App-Level Middleware
-  app.use(middlewareLogResponses);
+  app.use(middlewareLogResponses, express.json());
 
   // Static files
   app.use("/app", middlewareMetricsInc, express.static("./src/app"));
