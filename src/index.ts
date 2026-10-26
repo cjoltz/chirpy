@@ -1,6 +1,11 @@
 import express from "express";
 import { handlerReadiness } from "./api/readiness.js";
-import { middlewareLogResponses } from "./api/middleware.js";
+import {
+  middlewareLogResponses,
+  middlewareMetricsInc,
+} from "./api/middleware.js";
+import { handlerMetrics, handlerReset } from "./api/metrics.js";
+import { allowedNodeEnvironmentFlags } from "node:process";
 
 async function main() {
   const app = express();
@@ -10,9 +15,14 @@ async function main() {
   app.use(middlewareLogResponses);
 
   // Static files
-  app.use("/app", express.static("./src/app"));
+  app.use("/app", middlewareMetricsInc, express.static("./src/app"));
+
   // Readiness Endpoint
-  app.get("/healthz", handlerReadiness);
+  app.get("/api/healthz", handlerReadiness);
+
+  // Admin endpoints
+  app.get("/admin/metrics", handlerMetrics);
+  app.post("/admin/reset", handlerReset);
 
   app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
