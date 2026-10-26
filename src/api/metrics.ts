@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
 import { config } from "../config.js";
+import { deleteAllUsers } from "../db/queries/users.js";
+import { ForbiddenError } from "./errors.js";
 
 export async function handlerMetrics(_: Request, res: Response) {
-  const num = config.fileserverHits;
+  const num = config.api.fileserverHits;
   const html = `
   <html>
     <body>
@@ -15,7 +17,14 @@ export async function handlerMetrics(_: Request, res: Response) {
 }
 
 export async function handlerReset(_: Request, res: Response) {
-  config.fileserverHits = 0;
+  if (config.api.platform !== "dev") {
+    throw new ForbiddenError(
+      "Invalid environment configuration for this endpoint",
+    );
+    return;
+  }
+  config.api.fileserverHits = 0;
+  await deleteAllUsers();
   res.set("Content-Type", "text/plain; charset=utf-8");
-  res.send(`Reset metrics`);
+  res.send(`Reset metrics and db`);
 }

@@ -1,32 +1,64 @@
 import type { Request, Response } from "express";
-import { respondWithError, respondWithJSON } from "./json.js";
+import { respondWithJSON } from "./json.js";
+import { BadRequestError } from "./errors.js";
+import type { NewChirp } from "../db/schema.js";
+import { createChirp, getAllChirps } from "../db/queries/chirps.js";
 
 const profanities = ["kerfuffle", "sharbert", "fornax"];
 const maxChirpLength = 140;
 
-export async function handlerChirpValidate(req: Request, res: Response) {
-  type parameters = {
-    body: string;
-  };
-
-  let params: parameters = req.body;
-
-  if (typeof params?.body !== "string") {
-    respondWithError(res, 400, "Invalid JSON request");
-    return;
+function validateChirp(chirp: string): string {
+  if (typeof chirp !== "string") {
+    throw new BadRequestError("Invalid JSON format");
   }
-  if (params.body.length > maxChirpLength) {
-    respondWithError(res, 400, "Chirp is too long");
-    return;
+  if (chirp.length > maxChirpLength) {
+    throw new BadRequestError(
+      `Chirp is too long. Max length is ${maxChirpLength}`,
+    );
   }
 
-  const words = params.body.split(" ");
+  const words = chirp.split(" ");
 
   const cleaned = words.map((word) =>
     profanities.includes(word.toLowerCase()) ? "****" : word,
   );
 
-  const cleanedBody = cleaned.join(" ");
+  return cleaned.join(" ");
+}
 
-  respondWithJSON(res, 200, { cleanedBody });
+export async function handlerCreateChirp(req: Request, res: Response) {
+  type parameters = {
+    body: string;
+    userId: string;
+  };
+  const params: parameters = req.body;
+  const cleanChirp = validateChirp(params.body);
+
+  // May need to update user check in the future to determine if user is registered
+  if (!params.userId) {
+    throw new BadRequestError("Unknown User");
+  }
+
+  const chirp: NewChirp = {
+    body: cleanChirp,
+    userId: params.userId,
+  };
+
+  const result = await createChirp(chirp);
+  if (!result) {
+    throw new Error("Failed to create chirp");
+  }
+
+  respondWithJSON(res, 201, {
+    id: result.id,
+    createdAt: result.createdAt,
+    updatedAt: result.updatedAt,
+    body: result.body,
+    userId: result.userId,
+  });
+}
+
+export async function handlerGetChirps(_req: Request, res: Response) {
+  const chirps = await getAllChirps();
+  respondWithJSON(res, 200, chirps);
 }
