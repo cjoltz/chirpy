@@ -7,6 +7,8 @@ import {
   getAllChirps,
   getChirpById,
 } from "../db/queries/chirps.js";
+import { getBearerToken, validateJWT } from "../auth.js";
+import { config } from "../config.js";
 
 const profanities = ["kerfuffle", "sharbert", "fornax"];
 const maxChirpLength = 140;
@@ -31,21 +33,20 @@ function validateChirp(chirp: string): string {
 }
 
 export async function handlerCreateChirp(req: Request, res: Response) {
+  // Authentication
+  const token = getBearerToken(req);
+  const userId = validateJWT(token, config.jwtSecret);
+
   type parameters = {
     body: string;
-    userId: string;
   };
   const params: parameters = req.body;
-  const cleanChirp = validateChirp(params.body);
 
-  // May need to update user check in the future to determine if user is registered
-  if (!params.userId) {
-    throw new BadRequestError("Unknown User");
-  }
+  const cleanChirp = validateChirp(params?.body);
 
   const chirp: NewChirp = {
     body: cleanChirp,
-    userId: params.userId,
+    userId,
   };
 
   const result = await createChirp(chirp);

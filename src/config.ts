@@ -1,11 +1,11 @@
 import type { MigrationConfig } from "drizzle-orm/migrator";
-import { env } from "node:process";
 
 process.loadEnvFile();
 
 export type Config = {
   api: APIConfig;
   db: DBConfig;
+  jwtSecret: string;
 };
 
 export type APIConfig = {
@@ -39,6 +39,7 @@ export const config: Config = {
     url: envOrThrow("DB_URL"),
     migrationConfig,
   },
+  jwtSecret: envOrThrow("JWT_SECRET"),
 };
 
 function envOrThrow(key: string): string {
