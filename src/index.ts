@@ -11,7 +11,7 @@ import {
   handlerGetChirps,
   handlerGetChirp,
 } from "./api/chirps.js";
-import { handlerCreateUser } from "./api/users.js";
+import { handlerCreateUser, handlerLogin } from "./api/users.js";
 import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -40,6 +40,7 @@ async function main() {
 
   // User endpoints
   app.post("/api/users", handlerCreateUser);
+  app.post("/api/login", handlerLogin);
 
   // Chirp endpoints
   app.post("/api/chirps", handlerCreateChirp);
