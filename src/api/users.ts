@@ -3,16 +3,33 @@ import { BadRequestError, ConflictError, UnauthorizedError } from "./errors.js";
 import { NewUser } from "../db/schema.js";
 import { createUser, getUserByEmail } from "../db/queries/users.js";
 import { respondWithJSON } from "./json.js";
-import { checkPasswordHash, hashPassword, makeJWT } from "../auth.js";
+import {
+  ACCESS_TOKEN_LIFE,
+  REFRESH_TOKEN_LIFE,
+  checkPasswordHash,
+  getBearerToken,
+  hashPassword,
+  makeJWT,
+  makeRefreshToken,
+  validateJWT,
+} from "../auth.js";
 import { config } from "../config.js";
+import {
+  createRefreshToken,
+  getUserIdFromRefreshToken,
+} from "../db/queries/tokens.js";
+
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+}
 
 export async function handlerCreateUser(req: Request, res: Response) {
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   type parameters = {
     email: string;
     password: string;
   };
-  let params: parameters = req.body;
+  const params: parameters = req.body;
 
   if (
     typeof params?.email !== "string" ||
@@ -20,7 +37,7 @@ export async function handlerCreateUser(req: Request, res: Response) {
   ) {
     throw new BadRequestError("Invalid JSON format");
   }
-  if (!emailRegex.test(params.email)) {
+  if (!isValidEmail(params.email)) {
     throw new BadRequestError("Invalid email");
   }
 
@@ -42,7 +59,6 @@ export async function handlerLogin(req: Request, res: Response) {
   type parameters = {
     email: string;
     password: string;
-    expiresInSeconds: number;
   };
   const params: parameters = req.body;
   if (
@@ -51,13 +67,6 @@ export async function handlerLogin(req: Request, res: Response) {
   ) {
     throw new BadRequestError("Invalid JSON");
   }
-  // default to 1 hour if invalid value (<=0, >1hr, or undefined)
-  const tokenDuration =
-    typeof params.expiresInSeconds !== "number" ||
-    params.expiresInSeconds > 3600 ||
-    params.expiresInSeconds <= 0
-      ? 3600
-      : params.expiresInSeconds;
 
   const user = await getUserByEmail(params.email);
   if (!user) {
@@ -72,6 +81,24 @@ export async function handlerLogin(req: Request, res: Response) {
   }
 
   const { hashedPassword: _, ...publicUser } = user;
-  const token = makeJWT(publicUser.id, tokenDuration, config.jwtSecret);
-  respondWithJSON(res, 200, { ...publicUser, token });
+  const token = makeJWT(publicUser.id, ACCESS_TOKEN_LIFE, config.jwtSecret);
+  const refreshToken = makeRefreshToken();
+  await createRefreshToken(refreshToken, publicUser.id, REFRESH_TOKEN_LIFE);
+  respondWithJSON(res, 200, { ...publicUser, token, refreshToken });
+}
+
+export async function handlerUpdateUser(req: Request, res: Response) {
+  // Authenticate user
+  const token = getBearerToken(req);
+  const userId = validateJWT(token, config.jwtSecret);
+  
+
+  type parameters = {
+    email: string;
+    password: string;
+  };
+  const params: parameters = req.body;
+  const isEmailUpdate =
+    typeof params.email === "string" && isValidEmail(params.email);
+  const isPasswordUpdate = typeof params.password === "string";
 }

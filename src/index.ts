@@ -16,6 +16,7 @@ import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { handlerRefreshToken, handlerRevokeToken } from "./api/tokens.js";
 
 async function main() {
   // Migrations
@@ -41,6 +42,8 @@ async function main() {
   // User endpoints
   app.post("/api/users", handlerCreateUser);
   app.post("/api/login", handlerLogin);
+  app.post("/api/refresh", handlerRefreshToken);
+  app.post("/api/revoke", handlerRevokeToken);
 
   // Chirp endpoints
   app.post("/api/chirps", handlerCreateChirp);

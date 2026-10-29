@@ -3,8 +3,11 @@ import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import { UnauthorizedError } from "./api/errors.js";
 import type { Request } from "express";
+import { randomBytes } from "node:crypto";
 
 const TOKEN_ISSUER = "chirpy";
+export const ACCESS_TOKEN_LIFE = 60 * 60; // 1 hour, in seconds
+export const REFRESH_TOKEN_LIFE = 60 * 24 * 60 * 60; // 60 days, in seconds
 
 export async function hashPassword(password: string): Promise<string> {
   try {
@@ -62,10 +65,14 @@ export function getBearerToken(req: Request): string {
   if (!authHeader) {
     throw new UnauthorizedError("Request Missing Authorization Header");
   }
-  
+
   const [scheme, tokenString, ...rest] = authHeader.trim().split(/\s+/);
   if (scheme.toLowerCase() !== "bearer" || !tokenString || rest.length > 0) {
     throw new UnauthorizedError("Malformed Authorization Header");
   }
   return tokenString;
+}
+
+export function makeRefreshToken(): string {
+  return randomBytes(32).toString("hex");
 }
