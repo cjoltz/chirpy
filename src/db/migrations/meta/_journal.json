@@ -29,6 +29,13 @@
       "when": 1793139005008,
       "tag": "0003_wonderful_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793311787015,
+      "tag": "0004_red_scarecrow",
+      "breakpoints": true
     }
   ]
 }

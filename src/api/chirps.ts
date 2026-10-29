@@ -69,8 +69,15 @@ export async function handlerCreateChirp(req: Request, res: Response) {
   });
 }
 
-export async function handlerGetChirps(_req: Request, res: Response) {
-  const chirps = await getAllChirps();
+export async function handlerGetChirps(req: Request, res: Response) {
+  let authorId = "";
+  let authorIdQuery = req.query.authorId;
+  if (typeof authorIdQuery === "string") {
+    authorId = authorIdQuery;
+  }
+
+  const ascending = req.query.sort !== "desc";
+  const chirps = await getAllChirps({ authorId, ascending });
   respondWithJSON(res, 200, chirps);
 }
 

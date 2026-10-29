@@ -7,9 +7,21 @@ export async function createChirp(chirp: NewChirp) {
   return result;
 }
 
-export async function getAllChirps(ascending: boolean = true) {
+type GetChirpsOptions = {
+  authorId?: string;
+  ascending?: boolean;
+};
+
+export async function getAllChirps({
+  authorId,
+  ascending = true,
+}: GetChirpsOptions) {
   const order = ascending ? asc : desc;
-  return await db.select().from(chirps).orderBy(order(chirps.createdAt));
+  return await db
+    .select()
+    .from(chirps)
+    .where(authorId ? eq(chirps.userId, authorId) : undefined)
+    .orderBy(order(chirps.createdAt));
 }
 
 export async function getChirpById(id: string) {

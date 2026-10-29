@@ -1,12 +1,23 @@
 import type { Request, Response } from "express";
-import { BadRequestError, ConflictError, UnauthorizedError } from "./errors.js";
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+} from "./errors.js";
 import { NewUser } from "../db/schema.js";
-import { createUser, getUserByEmail, updateUser } from "../db/queries/users.js";
+import {
+  createUser,
+  getUserByEmail,
+  updateUser,
+  upgradeUserToRed,
+} from "../db/queries/users.js";
 import { respondWithJSON } from "./json.js";
 import {
   ACCESS_TOKEN_LIFE,
   REFRESH_TOKEN_LIFE,
   checkPasswordHash,
+  getAPIKey,
   getBearerToken,
   hashPassword,
   makeJWT,
@@ -118,4 +129,37 @@ export async function handlerUpdateUser(req: Request, res: Response) {
 
   const { hashedPassword: _, ...publicUser } = updatedUser;
   respondWithJSON(res, 200, publicUser);
+}
+
+export async function handlerUpgradeToRed(req: Request, res: Response) {
+  // Auth
+  const key = getAPIKey(req);
+  if (key !== config.api.polkaKey) {
+    throw new UnauthorizedError("Invalid API Key");
+  }
+  type parameters = {
+    event: string;
+    data: {
+      userId: string;
+    };
+  };
+
+  const params: parameters = req.body;
+
+  if (typeof params?.event !== "string" || params?.event !== "user.upgraded") {
+    res.status(204).send();
+    return;
+  }
+
+  if (typeof params?.data?.userId !== "string") {
+    throw new NotFoundError("User not found");
+  }
+
+  const userId = params.data.userId;
+  const updatedUser = await upgradeUserToRed(userId);
+  if (!updatedUser) {
+    throw new NotFoundError("User not found");
+  }
+
+  res.status(204).send();
 }

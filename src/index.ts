@@ -16,6 +16,7 @@ import {
   handlerCreateUser,
   handlerLogin,
   handlerUpdateUser,
+  handlerUpgradeToRed,
 } from "./api/users.js";
 import { config } from "./config.js";
 import postgres from "postgres";
@@ -50,6 +51,7 @@ async function main() {
   app.post("/api/refresh", handlerRefreshToken);
   app.post("/api/revoke", handlerRevokeToken);
   app.put("/api/users", handlerUpdateUser);
+  app.post("/api/polka/webhooks", handlerUpgradeToRed);
 
   // Chirp endpoints
   app.post("/api/chirps", handlerCreateChirp);
