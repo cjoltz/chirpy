@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { BadRequestError, ConflictError, UnauthorizedError } from "./errors.js";
 import { NewUser } from "../db/schema.js";
-import { createUser, getUserByEmail } from "../db/queries/users.js";
+import { createUser, getUserByEmail, updateUser } from "../db/queries/users.js";
 import { respondWithJSON } from "./json.js";
 import {
   ACCESS_TOKEN_LIFE,
@@ -14,10 +14,7 @@ import {
   validateJWT,
 } from "../auth.js";
 import { config } from "../config.js";
-import {
-  createRefreshToken,
-  getUserIdFromRefreshToken,
-} from "../db/queries/tokens.js";
+import { createRefreshToken } from "../db/queries/tokens.js";
 
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -91,14 +88,34 @@ export async function handlerUpdateUser(req: Request, res: Response) {
   // Authenticate user
   const token = getBearerToken(req);
   const userId = validateJWT(token, config.jwtSecret);
-  
 
   type parameters = {
     email: string;
     password: string;
   };
   const params: parameters = req.body;
-  const isEmailUpdate =
-    typeof params.email === "string" && isValidEmail(params.email);
-  const isPasswordUpdate = typeof params.password === "string";
+
+  const isValidRequest =
+    typeof params?.email === "string" &&
+    isValidEmail(params?.email) &&
+    typeof params?.password === "string" &&
+    params?.password.length > 0;
+
+  if (!isValidRequest) {
+    throw new BadRequestError("Invalid email and/or password");
+  }
+  const existingUser = await getUserByEmail(params.email);
+  if (existingUser && existingUser.id !== userId) {
+    throw new ConflictError("Email already used");
+  }
+
+  const newHashedPassword = await hashPassword(params.password);
+
+  const updatedUser = await updateUser(userId, params.email, newHashedPassword);
+  if (!updatedUser) {
+    throw new UnauthorizedError("User not found");
+  }
+
+  const { hashedPassword: _, ...publicUser } = updatedUser;
+  respondWithJSON(res, 200, publicUser);
 }

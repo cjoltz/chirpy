@@ -10,8 +10,13 @@ import {
   handlerCreateChirp,
   handlerGetChirps,
   handlerGetChirp,
+  handlerDeleteChirp,
 } from "./api/chirps.js";
-import { handlerCreateUser, handlerLogin } from "./api/users.js";
+import {
+  handlerCreateUser,
+  handlerLogin,
+  handlerUpdateUser,
+} from "./api/users.js";
 import { config } from "./config.js";
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -44,11 +49,13 @@ async function main() {
   app.post("/api/login", handlerLogin);
   app.post("/api/refresh", handlerRefreshToken);
   app.post("/api/revoke", handlerRevokeToken);
+  app.put("/api/users", handlerUpdateUser);
 
   // Chirp endpoints
   app.post("/api/chirps", handlerCreateChirp);
   app.get("/api/chirps", handlerGetChirps);
   app.get("/api/chirps/:chirpId", handlerGetChirp);
+  app.delete("/api/chirps/:chirpId", handlerDeleteChirp);
 
   // Error Handling middleware (MUST BE LAST, RIGHT BEFORE .listen)
   app.use(errorHandler);

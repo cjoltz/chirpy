@@ -1,9 +1,15 @@
 import type { Request, Response } from "express";
 import { respondWithJSON } from "./json.js";
-import { BadRequestError, NotFoundError } from "./errors.js";
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from "./errors.js";
 import type { NewChirp } from "../db/schema.js";
 import {
   createChirp,
+  deleteChirp,
   getAllChirps,
   getChirpById,
 } from "../db/queries/chirps.js";
@@ -78,4 +84,30 @@ export async function handlerGetChirp(req: Request, res: Response) {
     throw new NotFoundError("Chirp not found");
   }
   respondWithJSON(res, 200, chirp);
+}
+
+export async function handlerDeleteChirp(req: Request, res: Response) {
+  // Authenticate user
+  const token = getBearerToken(req);
+  const userId = validateJWT(token, config.jwtSecret);
+
+  const chirpId = req.params["chirpId"];
+  if (typeof chirpId !== "string") {
+    throw new NotFoundError("Can't find chirp");
+  }
+
+  // See if chirp exists
+  const chirp = await getChirpById(chirpId);
+  if (!chirp) {
+    throw new NotFoundError("Can't find chirp");
+  }
+
+  // Authorization, does chirp belong to authenticated user
+  if (chirp.userId !== userId) {
+    throw new ForbiddenError("Go delete a chirp of your own");
+  }
+
+  // Delete chirp
+  await deleteChirp(chirpId);
+  res.status(204).send();
 }
